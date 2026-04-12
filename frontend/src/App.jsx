@@ -1,120 +1,138 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
+const initialMessages = [
+  {
+    id: 1,
+    role: 'assistant',
+    text: "Hi, I'm CodeCoach. Ask me anything about your code or project.",
+  },
+]
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [messages, setMessages] = useState(initialMessages)
+  const [input, setInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const endOfMessagesRef = useRef(null)
+  const nextMessageId = useRef(initialMessages.length + 1)
+
+  useEffect(() => {
+    endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isLoading])
+
+  const appendMessage = (role, text) => {
+    setMessages((currentMessages) => [
+      ...currentMessages,
+      {
+        id: nextMessageId.current++,
+        role,
+        text,
+      },
+    ])
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+
+    const trimmedInput = input.trim()
+    if (!trimmedInput || isLoading) {
+      return
+    }
+
+    appendMessage('user', trimmedInput)
+    setInput('')
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('http://localhost:8000/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: trimmedInput }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (typeof data.response !== 'string' || data.response.trim() === '') {
+        throw new Error('Missing response text')
+      }
+
+      appendMessage('assistant', data.response)
+    } catch (error) {
+      appendMessage(
+        'assistant',
+        'I ran into a problem reaching the server. Please make sure the backend is running and try again.',
+      )
+      console.error(error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <main className="app-shell">
+      <div className="chat-card">
+        <header className="chat-header">
+          <div>
+            <p className="chat-eyebrow">AI coding partner</p>
+            <h1>CodeCoach 🎓</h1>
+          </div>
+        </header>
 
-      <div className="ticks"></div>
+        <section className="chat-messages" aria-live="polite">
+          {messages.map((message) => (
+            <article
+              key={message.id}
+              className={`message-row ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}
+            >
+              <div className="message-meta">
+                {message.role === 'user' ? 'You' : 'CodeCoach'}
+              </div>
+              <div className={`message-bubble ${message.role}`}>
+                <p>{message.text}</p>
+              </div>
+            </article>
+          ))}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          {isLoading ? (
+            <article className="message-row is-assistant">
+              <div className="message-meta">CodeCoach</div>
+              <div className="message-bubble assistant loading-bubble">
+                <span className="loading-dot" aria-hidden="true"></span>
+                <span className="loading-dot" aria-hidden="true"></span>
+                <span className="loading-dot" aria-hidden="true"></span>
+                <p>CodeCoach is thinking...</p>
+              </div>
+            </article>
+          ) : null}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+          <div ref={endOfMessagesRef} />
+        </section>
+
+        <form className="chat-composer" onSubmit={handleSubmit}>
+          <label className="sr-only" htmlFor="chat-input">
+            Ask CodeCoach a question
+          </label>
+          <input
+            id="chat-input"
+            type="text"
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="Ask CodeCoach about your code..."
+            disabled={isLoading}
+            autoComplete="off"
+          />
+          <button type="submit" disabled={isLoading || input.trim() === ''}>
+            Send
+          </button>
+        </form>
+      </div>
+    </main>
   )
 }
 
