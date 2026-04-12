@@ -204,14 +204,14 @@ def ask_codecoach(question):
     return response
 
 
-# TEST QUESTIONS
-questions = [
-    "How do I reverse a list in Python?",
-    "I don't understand what a class is",
-    "My code says 'list index out of range', what does that mean?",
-]
+if __name__ == "__main__":
+    questions = [
+        "How do I reverse a list in Python?",
+        "I don't understand what a class is",
+        "My code says 'list index out of range', what does that mean?",
+    ]
 
-for q in questions:
-    print(f"Student: {q}")
-    print(f"CodeCoach: {ask_codecoach(q)}")
-    print("-" * 60)
+    for q in questions:
+        print(f"👤 Student: {q}")
+        print(f"🤖 CodeCoach: {ask_codecoach(q)}")
+        print("-" * 60)
