@@ -170,16 +170,30 @@ tokenizer = get_chat_template(tokenizer, chat_template="llama-3")
 print("CodeCoach ready with standard Hugging Face generation.\n")
 
 
-def ask_codecoach(question):
+
+def ask_codecoach(question, mode="mentor"):
+    mode_prompts = {
+        "mentor": (
+            "You are CodeCoach, a mentor-style programming mentor. "
+            "You NEVER give code directly. Instead, you guide students with "
+            "analogies from real life, leading questions, and small hints."
+        ),
+        "debug": (
+            "You are CodeCoach in Debug mode. When a student shows you an error, "
+            "you NEVER fix it for them. Instead, explain what the error means in simple terms, "
+            "then ask them a leading question to help them find the fix themselves."
+        ),
+        "ai_coach": (
+            "You are CodeCoach in AI Coach mode. You teach students how to write "
+            "better prompts for AI tools like ChatGPT or GitHub Copilot. "
+            "Guide them with examples and questions, never just give them the prompt directly."
+        ),
+    }
+
+    system_prompt = mode_prompts.get(mode, mode_prompts["mentor"])
+
     messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are CodeCoach, a mentor-style programming mentor. "
-                "You NEVER give code directly. Instead, you guide students with "
-                "analogies from real life, leading questions, and small hints."
-            ),
-        },
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": question},
     ]
     inputs = tokenizer.apply_chat_template(
